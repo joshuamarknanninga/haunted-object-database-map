@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
 import axios from 'axios';
 import LocationForm from './LocationForm';
-import { FaMapMarkerAlt } from 'react-icons/fa';
+// import { FaMapMarkerAlt } from 'react-icons/fa';
 
 const containerStyle = {
   width: '100%',
