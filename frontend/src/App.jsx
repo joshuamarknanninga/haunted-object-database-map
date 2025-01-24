@@ -66,6 +66,12 @@ function App() {
         <Route path="/login" element={!auth.token ? <Login onLogin={handleLogin} /> : <Navigate to="/" />} />
         <Route path="/register" element={!auth.token ? <Register /> : <Navigate to="/" />} />
         <Route path="/add-location" element={auth.token ? <AddLocation token={auth.token} /> : <Navigate to="/login" />} />
+        <Route
+  path="/add-location"
+  element={
+    <ProtectedRoute auth={auth}>
+      <AddLocation token={auth.token} />
+    </ProtectedRoute>
         {/* Add more routes as needed */}
       </Routes>
     </Router>
