@@ -5,17 +5,42 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Load environment variables
+dotenv.config();
+
+// Import models
+const User = require('./models/User');
+const Location = require('./models/Location');
+
 // Middleware
-app.use(cors({
-    origin: 'http://localhost:3000',
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
-  }));
-  app.use(bodyParser.json());
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  
+    if (!token) return res.status(401).json({ message: 'Access token missing' });
+  
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+      if (err) return res.status(403).json({ message: 'Invalid access token' });
+      req.user = user;
+      next();
+    });
+  };
+
+  // Connect to MongoDB
+mongoose.connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log('MongoDB connected'))
+  .catch((err) => console.error('MongoDB connection error:', err));
 
 // Data directory path
 const dataDir = path.join(__dirname, 'data');
@@ -35,6 +60,71 @@ const getAllLocations = () => {
   return locations;
 };
 
+// Routes
+
+// Register a new user
+app.post('/api/register', async (req, res) => {
+    const { username, password } = req.body;
+  
+    // Validate input
+    if (!username || !password) return res.status(400).json({ message: 'Username and password are required.' });
+  
+    try {
+      // Check if user exists
+      const existingUser = await User.findOne({ username });
+      if (existingUser) return res.status(400).json({ message: 'Username already exists.' });
+  
+      // Hash password
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+  
+      // Create user
+      const newUser = new User({
+        username,
+        password: hashedPassword,
+      });
+  
+      await newUser.save();
+  
+      res.status(201).json({ message: 'User registered successfully.' });
+    } catch (error) {
+      console.error('Error registering user:', error);
+      res.status(500).json({ message: 'Server error.' });
+    }
+  });
+  
+  // Login a user
+  app.post('/api/login', async (req, res) => {
+    const { username, password } = req.body;
+  
+    // Validate input
+    if (!username || !password) return res.status(400).json({ message: 'Username and password are required.' });
+  
+    try {
+      // Find user
+      const user = await User.findOne({ username });
+      if (!user) return res.status(400).json({ message: 'Invalid credentials.' });
+  
+      // Compare password
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) return res.status(400).json({ message: 'Invalid credentials.' });
+  
+      // Create JWT
+      const token = jwt.sign({ id: user._id, username: user.username }, process.env.JWT_SECRET, { expiresIn: '1h' });
+  
+      res.json({ token, username: user.username });
+    } catch (error) {
+      console.error('Error logging in:', error);
+      res.status(500).json({ message: 'Server error.' });
+    }
+  });
+  
+  // Logout a user (handled on client-side)
+  app.post('/api/logout', (req, res) => {
+    // For JWT, logout is handled on the client side by deleting the token
+    res.json({ message: 'Logged out successfully.' });
+  });
+
 // GET all locations
 app.get('/api/locations', (req, res) => {
   try {
@@ -46,50 +136,54 @@ app.get('/api/locations', (req, res) => {
   }
 });
 
-// POST a new location
-app.post('/api/locations', (req, res) => {
-  const { name, description, latitude, longitude } = req.body;
-
-  // Validate request body
-  if (!name || !description || !latitude || !longitude) {
-    return res.status(400).json({ error: 'All fields are required.' });
-  }
-
-  const newLocation = {
-    id: uuidv4(),
-    name,
-    description,
-    latitude,
-    longitude,
-    createdAt: new Date().toISOString(),
-  };
-
-  const filePath = path.join(dataDir, `${newLocation.id}.json`);
-
-  fs.writeFile(filePath, JSON.stringify(newLocation, null, 2), (err) => {
-    if (err) {
-      console.error('Error saving location:', err);
-      return res.status(500).json({ error: 'Failed to save location.' });
+// Add a new location (authenticated)
+app.post('/api/locations', authenticateToken, async (req, res) => {
+    const { name, description, latitude, longitude, behavior, documented } = req.body;
+  
+    // Validate input
+    if (!name || !description || !latitude || !longitude) {
+      return res.status(400).json({ message: 'Name, description, latitude, and longitude are required.' });
     }
-    res.status(201).json(newLocation);
+  
+    try {
+      const newLocation = new Location({
+        name,
+        description,
+        latitude,
+        longitude,
+        behavior,
+        documented,
+        createdBy: req.user.id,
+      });
+  
+      await newLocation.save();
+  
+      // Populate the createdBy field
+      await newLocation.populate('createdBy', 'username').execPopulate();
+  
+      res.status(201).json(newLocation);
+    } catch (error) {
+      console.error('Error adding location:', error);
+      res.status(500).json({ message: 'Failed to add location.' });
+    }
   });
-});
-
-// Optional: GET a single location by ID
-app.get('/api/locations/:id', (req, res) => {
-  const { id } = req.params;
-  const filePath = path.join(dataDir, `${id}.json`);
-
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ error: 'Location not found.' });
-  }
-
-  const data = fs.readFileSync(filePath);
-  const location = JSON.parse(data);
-  res.json(location);
-});
-
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Backend server is running on port ${PORT}`);
-});
+  
+  // Get a single location by ID (public)
+  app.get('/api/locations/:id', async (req, res) => {
+    const { id } = req.params;
+  
+    try {
+      const location = await Location.findById(id).populate('createdBy', 'username');
+      if (!location) return res.status(404).json({ message: 'Location not found.' });
+  
+      res.json(location);
+    } catch (error) {
+      console.error('Error fetching location:', error);
+      res.status(500).json({ message: 'Failed to fetch location.' });
+    }
+  });
+  
+  // Start the server
+  app.listen(PORT, () => {
+    console.log(`Backend server is running on port ${PORT}`);
+  });
