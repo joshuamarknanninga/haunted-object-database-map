@@ -1,12 +1,16 @@
 {
   "name": "haunted-object-database-map",
   "version": "1.0.0",
-  "description": "This will be a database that can be mapped out, about haunted objects.",
+  "description": "This is the backend server for the Haunted Map project, built with Node.js and Express.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.5.1",
+    "tailwindcss": "^4.0.0"
+  }
 }
