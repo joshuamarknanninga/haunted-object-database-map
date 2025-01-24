@@ -1,0 +1,12 @@
+{
+  "name": "haunted-object-database-map",
+  "version": "1.0.0",
+  "description": "This will be a database that can be mapped out, about haunted objects.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
