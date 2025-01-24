@@ -10,8 +10,12 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors());
-app.use(bodyParser.json());
+app.use(cors({
+    origin: 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type'],
+  }));
+  app.use(bodyParser.json());
 
 // Data directory path
 const dataDir = path.join(__dirname, 'data');
