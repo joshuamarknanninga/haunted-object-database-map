@@ -50,6 +50,11 @@ if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir);
 }
 
+// Verify Token Route
+app.get('/api/verify', authenticateToken, (req, res) => {
+    res.json({ username: req.user.username });
+  });
+  
 // Helper function to get all location data
 const getAllLocations = () => {
   const files = fs.readdirSync(dataDir);
