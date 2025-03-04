@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@craco/craco": "^7.1.0",
     "@react-google-maps/api": "^2.20.5",
     "axios": "^1.7.9",
     "react": "^18.2.0",
@@ -13,9 +14,9 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "start": "craco start",
+    "build": "craco build",
+    "test": "craco test",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -37,9 +38,10 @@
     ]
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.9",
     "autoprefixer": "^10.4.20",
-    "postcss": "^8.5.1",
+    "postcss": "^8.5.3",
     "postcss-loader": "^6.2.1",
-    "tailwindcss": "^4.0.0"
+    "tailwindcss": "^4.0.9"
   }
 }

@@ -45,20 +45,21 @@ const AddLocation = () => {
     }
 
     try {
-      const response = await axios.post(
-        'http://localhost:5000/api/locations',
-        {
+      const response = await fetch('http://localhost:5000/api/locations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${auth.token}`,
+        },
+        body: JSON.stringify({
           name: form.name,
           description: form.description,
           latitude,
           longitude,
           behavior: form.behavior,
           documented: form.documented,
-        },
-        {
-          headers: { Authorization: `Bearer ${auth.token}` },
-        }
-      );
+        }),
+      });
       alert('Location added successfully.');
       navigate('/'); // Redirect to Home after successful submission
     } catch (err) {
